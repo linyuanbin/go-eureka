@@ -3,6 +3,8 @@ package eureka
 import (
 	"crypto/tls"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 func doHttpRequest(httpAction HttpAction) bool {
@@ -15,10 +17,10 @@ func doHttpRequest(httpAction HttpAction) bool {
 	resp, err := DefaultTransport.RoundTrip(req)
 	if resp != nil && resp.StatusCode > 299 {
 		defer resp.Body.Close()
-		Infof("HTTP request failed with status: %d", resp.StatusCode)
+		logrus.Error("HTTP request failed with status: ", resp.StatusCode)
 		return false
 	} else if err != nil {
-		Infof("HTTP request failed: %s", err.Error())
+		logrus.Error("HTTP request failed: ", err.Error())
 		return false
 	} else {
 		defer resp.Body.Close()

@@ -12,9 +12,6 @@ func main() {
 	eurekaClient.SetRenewalIntervalInSecs("30")
     eurekaClient.SetDurationInSecs("90")
 
-    //日志对象初始化： logger 传自己的日志对象
-    eureka.InitLog(logger)
-
     //服务名称 、端口 (默认获取本地IP)
     eurekaClient.Register("monitor", "8080")
 
@@ -54,4 +51,3 @@ func main() {
 * 当前服务升级，自动重新建立心跳机制(注册中心不升级，当前服务升级，不需要重新注册，但是需要重新建立心跳机制)
 * 注册到注册中心的statusPageUrl (http://host:port/actuator/info)
 * 服务刷新时间支持自定义
-* 日志打印支持自定义

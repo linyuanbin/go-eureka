@@ -2,6 +2,7 @@ package eureka
 
 import (
 	"crypto/tls"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -31,7 +32,7 @@ func (httpAction HttpAction) BuildHttpRequest() *http.Request {
 		req, err = http.NewRequest(httpAction.Method, httpAction.Url, nil)
 	}
 	if err != nil {
-		Error(err.Error())
+		logrus.Error(err.Error())
 	}
 
 	// Add headers

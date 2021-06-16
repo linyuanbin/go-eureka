@@ -11,8 +11,6 @@ func init() {
 	client = NewEurekaClient("http://localhost:8761", 5, 30)
 	client.SetDurationInSecs("90")
 	client.SetRenewalIntervalInSecs("30")
-	//init log object
-	InitLog(log)
 }
 
 func TestEurekaClient_GetServices(t *testing.T) {

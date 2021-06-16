@@ -2,6 +2,7 @@ package eureka
 
 import (
 	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"net"
 	"os"
 	"os/signal"
@@ -92,8 +93,7 @@ func (client *Client) SetDurationInSecs(durationInSecs string) {
 func (client *Client) isExist(appName string, port string) bool {
 	service, er := client.GetServiceInstances(appName)
 	if er != nil {
-		Error("Registration attempt of " + appName + " failed!")
-		Errorf("Registration attempt of " + appName + " failed!")
+		logrus.Error("Registration attempt of " + appName + " failed!")
 		return false
 	}
 	//避免重复注册
@@ -131,7 +131,7 @@ func (client *Client) Register(appName string, port string) {
 		return
 	}
 	instanceId = port
-	tpl := string(regTpl)
+	tpl := regTpl
 	tpl = strings.Replace(tpl, "${ipAddress}", getLocalIP(), -1)
 	tpl = strings.Replace(tpl, "${port}", port, -1)
 	tpl = strings.Replace(tpl, "${securePort}", "443", -1)
@@ -160,14 +160,14 @@ func (client *Client) Register(appName string, port string) {
 		result = doHttpRequest(registerAction)
 		if result {
 			client.BuildHeartbeat = true
-			Info("Registration Success !")
+			logrus.Info("Registration Success !")
 			handleSigterm(client, appName, instanceId)
 			go client.startHeartbeat(client.DiscoveryServerUrl, appName, port)
 			go client.reRegistration(appName, port)
 			break
 		} else {
-			Warn("Registration attempt of " + appName + " failed!")
-			Warn("url: ", registerAction.Url)
+			logrus.Warn("Registration attempt of " + appName + " failed!")
+			logrus.Warn("url: ", registerAction.Url)
 			time.Sleep(time.Second * time.Duration(interval))
 			try++
 			if try >= client.Retry {
@@ -179,7 +179,7 @@ func (client *Client) Register(appName string, port string) {
 
 func (client *Client) register(appName string, port string) {
 	instanceId = port
-	tpl := string(regTpl)
+	tpl := regTpl
 	tpl = strings.Replace(tpl, "${ipAddress}", getLocalIP(), -1)
 	tpl = strings.Replace(tpl, "${port}", port, -1)
 	tpl = strings.Replace(tpl, "${securePort}", "443", -1)
@@ -207,12 +207,12 @@ func (client *Client) register(appName string, port string) {
 	for {
 		result = doHttpRequest(registerAction)
 		if result {
-			Info("Registration Success !")
+			logrus.Info("Registration Success !")
 			handleSigterm(client, appName, instanceId)
 			break
 		} else {
-			Warn("Registration attempt of " + appName + " failed!")
-			Warn("url: ", registerAction.Url)
+			logrus.Warn("Registration attempt of " + appName + " failed!")
+			logrus.Warn("url: ", registerAction.Url)
 			time.Sleep(time.Second * time.Duration(interval))
 			try++
 			if try >= client.Retry {
@@ -234,7 +234,7 @@ func (client *Client) reRegistration(appName string, port string) {
 }
 
 func (client *Client) Deregister(appName string, instanceId string) {
-	Info("Trying to deregister application " + appName + "...")
+	logrus.Debug("Trying to deregister application " + appName + "...")
 	// Deregister
 	deregisterAction := HttpAction{
 		Url:         client.DiscoveryServerUrl + "apps/" + appName + "/" + getLocalIP() + ":" + appName + ":" + instanceId,
@@ -243,34 +243,34 @@ func (client *Client) Deregister(appName string, instanceId string) {
 	}
 	a := doHttpRequest(deregisterAction)
 	if !a {
-		Error("Deregister ", appName, " failed")
+		logrus.Error("Deregister ", appName, " failed")
 	}
-	Info("Deregistered application " + appName + ", exiting. Check Eureka...")
+	logrus.Debug("Deregistered application " + appName + ", exiting. Check Eureka...")
 }
 
 //GetServiceInstances 获取服务信息
 func (client *Client) GetServiceInstances(appName string) (rest []Instance, err error) {
 	var m ServiceResponse
-	Info("Querying eureka for instances of " + appName + " at: " + client.DiscoveryServerUrl + "apps/" + appName)
+	logrus.Debug("Querying eureka for instances of " + appName + " at: " + client.DiscoveryServerUrl + "apps/" + appName)
 	queryAction := HttpAction{
 		Url:         client.DiscoveryServerUrl + "apps/" + appName,
 		Method:      "GET",
 		Accept:      "application/json;charset=UTF-8",
 		ContentType: "application/json;charset=UTF-8",
 	}
-	Info("Doing queryAction using URL: " + queryAction.Url)
+	logrus.Debug("Doing queryAction using URL: " + queryAction.Url)
 	bytes, err := queryAction.Do()
 	if err != nil {
-		Error("GetServiceInstances", err.Error())
+		logrus.Error("GetServiceInstances", err.Error())
 		return
 	} else {
-		Info("Got instances response from Eureka:\n" + string(bytes))
+		logrus.Info("Got instances response from Eureka:\n" + string(bytes))
 		if len(bytes) == 0 {
 			return
 		}
 		err := json.Unmarshal(bytes, &m)
 		if err != nil {
-			Error("Problem parsing JSON response from Eureka: " + err.Error())
+			logrus.Error("Problem parsing JSON response from Eureka: " + err.Error())
 			return nil, err
 		}
 		rest = m.Application.Instance
@@ -293,7 +293,7 @@ func (client *Client) GetServiceUrl(appName string) (url string) {
 //GetServices 获取Eureka服务中心服务列表
 func (client *Client) GetServices() (rest []Application, err error) {
 	var m ApplicationsRootResponse
-	Info("Querying eureka for services at: " + client.DiscoveryServerUrl + "apps")
+	logrus.Debug("Querying eureka for services at: " + client.DiscoveryServerUrl + "apps")
 	queryAction := HttpAction{
 		Url:         client.DiscoveryServerUrl + "apps",
 		Method:      "GET",
@@ -302,7 +302,7 @@ func (client *Client) GetServices() (rest []Application, err error) {
 	}
 	bytes, err := queryAction.Do()
 	if err != nil {
-		Error(err.Error(), err)
+		logrus.Error(err.Error(), err)
 		return
 	} else {
 		if len(bytes) == 0 {
@@ -310,7 +310,7 @@ func (client *Client) GetServices() (rest []Application, err error) {
 		}
 		err := json.Unmarshal(bytes, &m)
 		if err != nil {
-			Error("Unmarshal response from Eureka: " + err.Error())
+			logrus.Error("Unmarshal response from Eureka: " + err.Error())
 			return nil, err
 		}
 		rest = m.Resp.Applications
@@ -327,12 +327,12 @@ func (client *Client) startHeartbeat(url string, appName string, port string) {
 
 func heartbeat(url string, appName string, port string) {
 	heartbeatAction := HttpAction{
-		//apps/monitor/10.95.58.86:monitor:18085?status=UP
+		//apps/monitor/127.0.0.1:test:18085?status=UP
 		Url:         url + "apps/" + appName + "/" + getLocalIP() + ":" + appName + ":" + port + "?status=UP",
 		Method:      "PUT",
 		ContentType: "application/json;charset=UTF-8",
 	}
-	Info("Issuing heartbeat to " + heartbeatAction.Url)
+	logrus.Debug("Issuing heartbeat to " + heartbeatAction.Url)
 	doHttpRequest(heartbeatAction)
 }
 
